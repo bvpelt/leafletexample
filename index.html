@@ -17,7 +17,7 @@
       <div id="postcodeinput" class="postcodeinput">
         <label>postcode</label> <input type="text" ng-model="postcode" ng-minlength="6" ng-maxlength="6"  ng-pattern="pattern" placeholder="9999AA"/>   
         <label>huisnummer</label> <input type="text" ng-model="huisnummer" ng-minlength="1" ng-maxlength="6"  />
-        <button ng-click="search()"> 
+        <button ng-click="search()" ng-show="postcode.length==6 && huisnummer.length>0" > 
         Zoek
         </button> <br/>
         <label>straat:   </label>{{straat}} {{huisnummer}}<br/>
@@ -74,7 +74,7 @@
 
 	<script>
 	var app = angular.module('leafmod', []);
-	app.controller('leafcontrol', function($scope, $http) {
+	app.controller('leafcontrol', function($scope, $http) {		
 	    $scope.postcode = "";
 	    $scope.huisnummer = "";
 	    $scope.pattern = /\d{4}[a-zA-Z]{2}/;
@@ -82,16 +82,20 @@
 	    $scope.stad     = "";
 	    $scope.straat   = "";
 	    $scope.long     = undefined;
-	    $scope.lat      = undefined;
-
+	    $scope.lat      = undefined;		
 	
+		/*
+		Search for huisnummer in data
+		if not found return -1
+		if found return id of found data
+		*/
 		var findit = function (huisnummer, data) {
 	    	var found = false;
 	    	var more = data._embedded.addresses.length;
 	    	var id = "";
-	    	var i = 0;
+	    	var i = 0; // not found
 
-	    	while ((!found) && more) {
+	    	while ((!found) && (i < more)) {
 	    		//alert("found: " + found + " more: " + more + " i: " + i);
 	    		found = (data._embedded.addresses[i].number == huisnummer);
 	    		if (found) {
@@ -130,10 +134,10 @@
 			    function success(response) {
 			    	id = 0;
 			        $scope.postdata = response.data;
-		            alert("Huisnummer: " + $scope.huisnummer + "\nSuccess, data: " + response.data + "\nlength huisnr: " + $scope.huisnummer.length);
+		            //alert("Huisnummer: " + $scope.huisnummer + "\nSuccess, data: " + response.data + "\nlength huisnr: " + $scope.huisnummer.length);
 		            if ($scope.huisnummer.length > 0) {
 		            	id = findit($scope.huisnummer, response.data);
-		            	alert("Success, data id: " + id);
+		            	//alert("Success, data id: " + id);
 		            	
 		            	if (id.length > 0) {
 		            		var coord = L.latLng($scope.lat, $scope.long);

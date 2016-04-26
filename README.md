@@ -1,6 +1,11 @@
 # Leafletexample
 Example using leaflet with angularjs
 
+TODO 
+the postcode api only gives 20 entries back
+if huisnummer not found page to get next 20 entries using pattern
+https://postcode-api.apiwise.nl/v2/addresses/?postcode=3904LG&from[number]=129&from[id]=0345200002066819&from[postcode]=3904LG
+
 Used documentation:
 * [Angularjs](https://angularjs.org/)
 * [$http](https://docs.angularjs.org/api/ng/service/$http)
