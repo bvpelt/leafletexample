@@ -1,0 +1,157 @@
+<html ng-app="leafmod" >
+  <head>
+    <!-- see https://github.com/tomtor/PDOK-demo-app/blob/master/add-data.html -->
+    <title>PDOK Leaflet Example</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="leaflet.css" /> <!-- link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.css" / -->   
+    <link rel="stylesheet" href="leafex.css" /> 
+    <script src="leaflet.js"></script>           <!-- <script src="http://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.js"></script> -->   
+    <script src="proj4-compressed.js"></script>  <!-- <script src="http://rawgithub.com/kartena/Proj4Leaflet/master/lib/proj4-compressed.js"></script> -->
+    <script src="proj4leaflet.js"></script>      <!-- <script src="http://v7f.eu/public/PDOK/proj4leaflet.js"></script> -->
+    <script src="angular.min.js"></script>       <!-- <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular.min.js"></script> -->
+   
+  </head>
+  <body ng-controller="leafcontrol">
+    <div id="content" class="content">
+      <div id="postcodeinput" class="postcodeinput">
+        <label>postcode</label> <input type="text" ng-model="postcode" ng-minlength="6" ng-maxlength="6"  ng-pattern="pattern" placeholder="9999AA"/>   
+        <label>huisnummer</label> <input type="text" ng-model="huisnummer" ng-minlength="1" ng-maxlength="6"  />
+        <button ng-click="search()"> 
+        Zoek
+        </button> <br/>
+        <label>straat:   </label>{{straat}} {{huisnummer}}<br/>
+        <label>postcode: </label>{{postcode}} {{stad}}<br/>  
+        
+      </div>
+      <div id="map" style="width: 1200px; height: 400px" ></div>
+      <div id="adresoutput" class="adresoutput">
+        <label>adres:    </label>{{postcode | uppercase }}
+        <label>huisnr:   </label>{{huisnummer | uppercase}}
+        <br/>
+       
+        <label>coord (lat,long):  </label>{{lat}} {{long}} <br/>
+        <!-- <label>data</label>{{postdata}} -->
+      </div>
+    </div>
+    <script>
+      var res = [3440.640, 1720.320, 860.160, 430.080, 215.040, 107.520, 53.760, 26.880, 13.440, 6.720, 3.360, 1.680, 0.840, 0.420];
+      var RDM = new L.Proj.CRS.TMS(
+			'EPSG:28992',
+			'+proj=sterea +lat_0=52.15616055555555 +lon_0=5.38763888888889 +k=0.9999079 +x_0=155000 +y_0=463000 +ellps=bessel +units=m +towgs84=565.2369,50.0087,465.658,-0.406857330322398,0.350732676542563,-1.8703473836068,4.0812 +no_defs', [-285401.92, 22598.08, 595401.9199999999, 903401.9199999999], 
+		{
+			transformation: new L.Transformation(1,0,-1,0),
+			resolutions: res
+		});
+		var map = L.map('map', {crs:RDM}).setView([52.02419, 5.530], 10);
+
+        var circle = L.circle([52.02406, 5.5304008], 25, {
+            color: 'red',
+            fillColor: '#f03',
+            fillOpacity: 0.5
+            }).addTo(map);
+
+		L.tileLayer('http://geodata.nationaalgeoregister.nl/tms/1.0.0/brtachtergrondkaart/{z}/{x}/{y}.png', {
+			tms: true,
+			minZoom: 2,
+			maxZoom: 12,
+			attribution: '<a href="demo-app.html">DemoMap</a> Map data &copy; BSoft',
+			id: 'brtachtergrondkaart'
+		}).addTo(map);
+
+		var popup = L.popup();
+		
+		function onMapClick(e) {
+			popup
+				.setLatLng(e.latlng)
+				.setContent("You clicked the map at " + e.latlng.toString())
+				.openOn(map);
+
+		}
+		map.on('click', onMapClick);
+
+    </script> 
+
+	<script>
+	var app = angular.module('leafmod', []);
+	app.controller('leafcontrol', function($scope, $http) {
+	    $scope.postcode = "";
+	    $scope.huisnummer = "";
+	    $scope.pattern = /\d{4}[a-zA-Z]{2}/;
+	    $scope.postdata = "";
+	    $scope.stad     = "";
+	    $scope.straat   = "";
+	    $scope.long     = undefined;
+	    $scope.lat      = undefined;
+
+	
+		var findit = function (huisnummer, data) {
+	    	var found = false;
+	    	var more = data._embedded.addresses.length;
+	    	var id = "";
+	    	var i = 0;
+
+	    	while ((!found) && more) {
+	    		//alert("found: " + found + " more: " + more + " i: " + i);
+	    		found = (data._embedded.addresses[i].number == huisnummer);
+	    		if (found) {
+	    			id = data._embedded.addresses[i].id;
+	    			$scope.stad = data._embedded.addresses[i].municipality.label;
+	    			$scope.straat = data._embedded.addresses[i].nen5825.street;
+	    			$scope.long = data._embedded.addresses[i].geo.center.wgs84.coordinates[0];
+	    			$scope.lat  = data._embedded.addresses[i].geo.center.wgs84.coordinates[1];
+	    		}
+	    		i++;
+			}
+	    	return id;
+	    };
+
+	    $scope.search = function() {
+	      $scope.postdata = ""
+
+	      // init fields
+          $scope.stad     = "";
+	      $scope.straat   = "";
+	      $scope.long     = undefined;
+	      $scope.lat      = undefined;
+
+	      if ($scope.postcode.length == 6) {
+	      	
+      	    var req = {
+                method: 'GET',
+                url: 'https://postcode-api.apiwise.nl/v2/addresses?postcode=' + $scope.postcode,                
+                headers: {	                	
+                  'X-Api-Key': '3Tek2w3rgu3h4jsSJoZal33OdxPm2YeNaTRIpSnJ'
+                }
+            };
+
+	        $scope.postdata = "";
+	        $http(req).then(
+			    function success(response) {
+			    	id = 0;
+			        $scope.postdata = response.data;
+		            alert("Huisnummer: " + $scope.huisnummer + "\nSuccess, data: " + response.data + "\nlength huisnr: " + $scope.huisnummer.length);
+		            if ($scope.huisnummer.length > 0) {
+		            	id = findit($scope.huisnummer, response.data);
+		            	alert("Success, data id: " + id);
+		            	
+		            	if (id.length > 0) {
+		            		var coord = L.latLng($scope.lat, $scope.long);
+		            		circle.setLatLng(coord);
+		            		map.setView(coord);
+		            	}		            	
+		            }
+		        }, 
+			    function error (response) {
+			        $scope.postdata = "";
+		            alert("Error during call\nPostcode: " + $scope.postcode + "\nReq: " + req.url);
+		        }
+	        );
+	      }
+	    };
+
+	});
+	</script>
+
+  </body>
+</html>

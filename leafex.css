@@ -1,0 +1,20 @@
+
+.container {
+}
+
+.postcodeinput { 
+    font-size: 18px;
+    margin-top: 10px;
+    margin-bottom: 20px;
+    margin-right: 50px;
+    margin-left: 0px;
+}
+
+.adresoutput {
+    font-size: 18px;
+    margin-top: 10px;
+    margin-bottom: 20px;
+    margin-right: 50px;
+    margin-left: 0px;
+}
+
